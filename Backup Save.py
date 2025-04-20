@@ -3,6 +3,7 @@ import os
 import json
 from datetime import datetime
 from colorama import init, Fore, Style
+from zipfile import ZipFile
 
 init(autoreset=True)
 
@@ -57,6 +58,19 @@ def checar_espaco(destino_base):
         return False
     return True
 
+def pasta_modificada_hoje(caminho):
+    hoje = datetime.now().date()
+    mod_time = datetime.fromtimestamp(os.path.getmtime(caminho)).date()
+    return mod_time == hoje
+
+def compactar_pasta(origem, destino_zip):
+    with ZipFile(destino_zip, 'w') as zipf:
+        for root, _, files in os.walk(origem):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, origem)
+                zipf.write(file_path, arcname)
+
 def copiar_pastas_com_log(origens, destino_base):
     data_pasta = datetime.now().strftime("%d-%m-%Y")
     destino_data = os.path.join(destino_base, data_pasta)
@@ -80,22 +94,22 @@ def copiar_pastas_com_log(origens, destino_base):
 
             for item in os.listdir(origem):
                 caminho_completo = os.path.join(origem, item)
-                if os.path.isdir(caminho_completo):
+                if os.path.isdir(caminho_completo) and pasta_modificada_hoje(caminho_completo):
                     hora = datetime.now().strftime("%Hh%M")
-                    nome_novo = f"{item}_{hora}"
-                    destino_final = os.path.join(destino_data, nome_novo)
+                    nome_zip = f"{item}_{hora}.zip"
+                    destino_zip = os.path.join(destino_data, nome_zip)
 
                     try:
-                        shutil.copytree(caminho_completo, destino_final)
-                        pastas = sum(len(dirs) for _, dirs, _ in os.walk(destino_final))
-                        arquivos = sum(len(files) for _, _, files in os.walk(destino_final))
+                        compactar_pasta(caminho_completo, destino_zip)
+                        pastas = sum(len(dirs) for _, dirs, _ in os.walk(caminho_completo))
+                        arquivos = sum(len(files) for _, _, files in os.walk(caminho_completo))
                         total_pastas += pastas
                         total_arquivos += arquivos
-                        mensagem = f"[OK] '{item}' copiado ({pastas} pastas, {arquivos} arquivos)"
+                        mensagem = f"[OK] '{item}' compactado ({pastas} pastas, {arquivos} arquivos)"
                         print(Fore.GREEN + mensagem)
                         log.write(mensagem + "\n")
                     except Exception as e:
-                        mensagem = f"[ERRO] Falha ao copiar {item}: {e}"
+                        mensagem = f"[ERRO] Falha ao compactar '{item}': {e}"
                         print(Fore.RED + mensagem)
                         log.write(mensagem + "\n")
 
@@ -106,8 +120,8 @@ def copiar_pastas_com_log(origens, destino_base):
         log.write(f"Duração: {duracao}\n")
 
     print(Fore.CYAN + f"\n=== RESUMO DO BACKUP ===")
-    print(Fore.GREEN + f"Total de Pastas Copiadas: {total_pastas}")
-    print(Fore.GREEN + f"Total de Arquivos Copiados: {total_arquivos}")
+    print(Fore.GREEN + f"Total de Pastas Compactadas: {total_pastas}")
+    print(Fore.GREEN + f"Total de Arquivos Compactados: {total_arquivos}")
     print(Fore.GREEN + f"Tempo Total: {duracao}")
     print(Fore.CYAN + "Backup concluído com sucesso!\n")
 
