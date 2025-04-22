@@ -13,6 +13,5 @@ A simple and efficient Python script for automatic folder backups on Windows. It
 ✅ Organização automática por data no formato `DD-MM-YYYY`.  
 ✅ Logs detalhados sobre o processo de backup.  
 ✅ Configuração fácil via `config.json`.  
-✅ Interface de texto colorida com feedback ao usuário.
 
 ---
